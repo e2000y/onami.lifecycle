@@ -1,0 +1,4 @@
+org/apache/onami/lifecycle/guava/GuavaServiceStartModule.class
+org/apache/onami/lifecycle/guava/GuavaServiceStopModule.class
+org/apache/onami/lifecycle/guava/GuavaServiceStopModule$2.class
+org/apache/onami/lifecycle/guava/GuavaServiceStopModule$1.class

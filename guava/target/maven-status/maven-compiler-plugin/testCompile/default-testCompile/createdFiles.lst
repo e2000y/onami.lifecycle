@@ -1,0 +1,3 @@
+org/apache/onami/lifecycle/guava/GuavaServiceObject.class
+org/apache/onami/lifecycle/guava/GuavaServiceObjectTestCase.class
+org/apache/onami/lifecycle/guava/GuavaServiceObjectTestCase$TestModule.class
