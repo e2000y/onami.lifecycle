@@ -32,6 +32,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.logging.*;
 
 import static com.google.inject.matcher.Matchers.any;
 import static java.lang.String.format;
@@ -44,11 +45,26 @@ public abstract class LifeCycleModule
     extends AbstractModule
 {
 
+    protected interface InvocationResultHandler
+    {
+        public void afterInvocation(Object  obj)
+            throws Throwable;
+    }
+
+    private final Logger  logger = Logger.getLogger(getClass().getName());
+
     /**
      * Binds lifecycle listener.
      */
     protected final void bindLifeCycle( final Class<?> clz, final String mtd )
     {
+        bindLifeCycle( clz, mtd , null );
+    }
+
+    protected final void bindLifeCycle( final Class<?> clz, final String mtd, final InvocationResultHandler  handler )
+    {
+        logger.info("Lifecycle - bind to " + clz.getName() + " with " + mtd);
+
         bindListener( new AbstractMatcher<TypeLiteral>()
         {
             public boolean matches( TypeLiteral  tl )
@@ -68,9 +84,18 @@ public abstract class LifeCycleModule
                         @Override
                         public void afterInjection(I injectee)
                         {
+                            logger.info("Lifecycle - before invoke " + mtd + " for " + injectee);
+
                             try
                             {
                                 method.invoke( injectee );
+
+                                logger.info("Lifecycle - after invoke " + mtd + " for " + injectee);
+
+                                if (handler != null)
+                                {
+                                    handler.afterInvocation(injectee);
+                                }
                             }
                             catch ( IllegalArgumentException e )
                             {
@@ -84,6 +109,10 @@ public abstract class LifeCycleModule
                             catch ( InvocationTargetException e )
                             {
                                 throw new ProvisionException( format( "An error occurred while invoking %s on %s", method, injectee ), e.getCause() );
+                            }
+                            catch ( Throwable th )
+                            {
+                                throw new ProvisionException( format( "An error occurred while invoking %s on %s", method, injectee ), th );
                             }
                         }
                     } );
@@ -103,7 +132,12 @@ public abstract class LifeCycleModule
      */
     protected final void bindLifeCycle( Class<? extends Annotation> annotation )
     {
-        bindLifeCycle( annotation, any() );
+        bindLifeCycle( asList( annotation ), any() , null );
+    }
+
+    protected final void bindLifeCycle( Class<? extends Annotation> annotation, final InvocationResultHandler  handler )
+    {
+        bindLifeCycle( asList( annotation ), any() , handler );
     }
 
     /**
@@ -114,7 +148,7 @@ public abstract class LifeCycleModule
      */
     protected final void bindLifeCycle( Class<? extends Annotation> annotation, Matcher<? super TypeLiteral<?>> typeMatcher )
     {
-        bindLifeCycle( asList( annotation ), typeMatcher );
+        bindLifeCycle( asList( annotation ), typeMatcher, null );
     }
 
     /**
@@ -125,6 +159,13 @@ public abstract class LifeCycleModule
      */
     protected final void bindLifeCycle( List<? extends Class<? extends Annotation>> annotations, Matcher<? super TypeLiteral<?>> typeMatcher )
     {
+        bindLifeCycle( annotations, typeMatcher, null );
+    }
+
+    protected final void bindLifeCycle( List<? extends Class<? extends Annotation>> annotations, Matcher<? super TypeLiteral<?>> typeMatcher, final InvocationResultHandler  handler )
+    {
+        logger.info("Lifecycle - bind to " + annotations + " with matcher " + typeMatcher);
+
         bindListener( typeMatcher, new AbstractMethodTypeListener( annotations )
         {
 
@@ -138,9 +179,18 @@ public abstract class LifeCycleModule
                     @Override
                     public void afterInjection( I injectee )
                     {
+                        logger.info("Lifecycle - before invoke " + method.getName() + " for " + injectee);
+
                         try
                         {
                             method.invoke( injectee );
+
+                            logger.info("Lifecycle - after invoke " + method.getName() + " for " + injectee);
+
+                            if (handler != null)
+                            {
+                                handler.afterInvocation(injectee);
+                            }
                         }
                         catch ( IllegalArgumentException e )
                         {
@@ -159,6 +209,12 @@ public abstract class LifeCycleModule
                             throw new ProvisionException(
                                 format( "An error occurred while invoking @%s %s on %s", annotationType.getName(),
                                         method, injectee ), e.getCause() );
+                        }
+                        catch ( Throwable th )
+                        {
+                            throw new ProvisionException(
+                                format( "An error occurred while invoking @%s %s on %s", annotationType.getName(),
+                                        method, injectee ), th );
                         }
                     }
 

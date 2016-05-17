@@ -35,7 +35,18 @@ public class GuavaServiceStartModule
     @Override
     protected void configure()
     {
-        bindLifeCycle( Service.class, "startAsync" );
+        bindLifeCycle( Service.class, "startAsync", new InvocationResultHandler() {
+            public void afterInvocation(Object  obj)
+                throws Throwable
+            {
+                Service  svc = (Service) obj;
+
+                if (svc.state() == Service.State.FAILED)
+                {
+                    throw svc.failureCause();
+                }
+            }
+        });
     }
 
 }
